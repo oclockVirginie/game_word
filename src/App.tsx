@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import stichDanceGif from './assets/stich_dance.gif'
 
 // List of words for the game, categorized by difficulty
 const WORD_CATEGORIES = {
@@ -35,10 +36,10 @@ const splitIntoSyllables = (word: string): string[] => {
   const vowels = ['a', 'e', 'i', 'o', 'u', 'y', 'é', 'è', 'ê', 'ë', 'à', 'â', 'ù', 'û', 'ï', 'î', 'ô'];
 
   // Common French diphthongs and special vowel combinations
-  const diphthongs = ['ai', 'au', 'ei', 'eu', 'oi', 'ou', 'ui', 'œu', 'ie', 'ue', 'oe'];
+  const diphthongs = ['ai','an','en','on','in', 'au', 'ei', 'eu', 'oi', 'ou', 'ui', 'œu', 'ie', 'ue', 'oe'];
 
   // Consonant digraphs that should be kept together
-  const digraphs = ['ch', 'ph', 'th', 'gn', 'qu'];
+  const digraphs = ['ch', 'ph', 'th', 'gn', 'qu','vr','pl'];
 
   // For very short words (3 letters or less), just return the whole word
   if (word.length <= 3) {
@@ -260,7 +261,7 @@ function App() {
         setTimeout(() => {
           setupGame();
           setHintsUsed(0);
-        }, 1500);
+        }, 3000); // Increased to 3 seconds to match the Stitch dance animation
       } else if (composedWord.length >= currentWord.length) {
         setIsCorrect(false);
 
@@ -393,7 +394,12 @@ function App() {
       {/* Feedback message */}
       {isCorrect !== null && (
         <div className={`feedback-message ${isCorrect ? 'correct' : 'incorrect'}`}>
-          {isCorrect ? 'Très bien!' : 'Essayez encore!'}
+          {isCorrect ? (
+            <>
+              <div>Très bien!</div>
+              <img src={stichDanceGif} alt="Stitch dance" className="stitch-dance" />
+            </>
+          ) : 'Essayez encore!'}
         </div>
       )}
     </div>

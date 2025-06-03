@@ -391,6 +391,15 @@ function App() {
         </div>
       </div>
 
+      {/* Confetti animation for correct answers */}
+      {isCorrect === true && (
+        <div className="confetti-container">
+          {[...Array(18)].map((_, index) => (
+            <div key={index} className="confetti"></div>
+          ))}
+        </div>
+      )}
+
       {/* Feedback message */}
       {isCorrect !== null && (
         <div className={`feedback-message ${isCorrect ? 'correct' : 'incorrect'}`}>

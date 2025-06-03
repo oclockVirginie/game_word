@@ -17,60 +17,128 @@ const WORD_CATEGORIES = {
   ]
 };
 
-// Function to split a word into syllables
-// This is a more educational approach for children learning to read
+/**
+ * Function to split a French word into syllables
+ * 
+ * This is an improved approach for French syllable detection that follows
+ * French phonological rules more accurately. It handles:
+ * - Vowel and consonant patterns (CV-CV)
+ * - Diphthongs and special vowel combinations
+ * - Consonant clusters and digraphs
+ * - Special cases like mute 'h'
+ * 
+ * The algorithm is designed for educational purposes to help children
+ * learn to read and recognize syllables in French words.
+ */
 const splitIntoSyllables = (word: string): string[] => {
   // Common vowels (including French accented vowels)
-  const vowels = ['a', 'e', 'i', 'o', 'u', 'é', 'è', 'ê', 'ë', 'à', 'â', 'ù', 'û', 'ï', 'î', 'ô'];
+  const vowels = ['a', 'e', 'i', 'o', 'u', 'y', 'é', 'è', 'ê', 'ë', 'à', 'â', 'ù', 'û', 'ï', 'î', 'ô'];
+
+  // Common French diphthongs and special vowel combinations
+  const diphthongs = ['ai', 'au', 'ei', 'eu', 'oi', 'ou', 'ui', 'œu', 'ie', 'ue', 'oe'];
+
+  // Consonant digraphs that should be kept together
+  const digraphs = ['ch', 'ph', 'th', 'gn', 'qu'];
 
   // For very short words (3 letters or less), just return the whole word
   if (word.length <= 3) {
     return [word];
   }
 
+  // Convert word to lowercase for processing
+  const lowerWord = word.toLowerCase();
+
   const syllables: string[] = [];
   let currentSyllable = '';
-  let hasVowel = false;
+  let i = 0;
 
-  for (let i = 0; i < word.length; i++) {
-    const char = word[i].toLowerCase();
+  while (i < word.length) {
+    const char = lowerWord[i];
+    const nextChar = i < word.length - 1 ? lowerWord[i + 1] : '';
+
+    // Add current character to the syllable
     currentSyllable += word[i];
 
-    // Check if current character is a vowel
-    if (vowels.includes(char)) {
-      hasVowel = true;
-    }
+    // Check for diphthongs and digraphs
+    const potentialDiphthong = char + nextChar;
+    const isDiphthong = diphthongs.includes(potentialDiphthong);
+    const isDigraph = digraphs.includes(potentialDiphthong);
 
-    // Rules for syllable breaks:
-    // 1. After a vowel followed by a consonant
-    // 2. Between two consonants
-    // 3. Before the last consonant + 'e' pattern
+    // Special case: mute 'h' doesn't break syllables
+    const isMuteH = nextChar === 'h' && !isDigraph;
 
-    const nextChar = i < word.length - 1 ? word[i + 1].toLowerCase() : '';
-    const isLastChar = i === word.length - 1;
+    // Check if we should end the current syllable
+    if (i < word.length - 1) {
+      const charAfterNext = i < word.length - 2 ? lowerWord[i + 2] : '';
 
-    if (hasVowel && 
-        ((vowels.includes(char) && nextChar && !vowels.includes(nextChar)) || 
-         (!vowels.includes(char) && nextChar && !vowels.includes(nextChar) && currentSyllable.length > 1) ||
-         isLastChar)) {
-
-      // Don't break before a final 'e'
-      if (isLastChar || !(nextChar === 'e' && i === word.length - 2)) {
+      // Rule 1: Vowel + Consonant + Vowel -> Split after the vowel (CV-CV pattern)
+      if (vowels.includes(char) && !vowels.includes(nextChar) && vowels.includes(charAfterNext) && !isMuteH) {
         syllables.push(currentSyllable);
         currentSyllable = '';
-        hasVowel = false;
+      }
+      // Rule 2: Two consonants between vowels -> Split between consonants
+      // Exception: Don't split certain consonant groups like 'bl', 'pr', etc.
+      else if (vowels.includes(char) && !vowels.includes(nextChar) && !vowels.includes(charAfterNext) && 
+               !(nextChar === 'l' && ['b', 'c', 'f', 'g', 'p'].includes(charAfterNext)) &&
+               !(nextChar === 'r' && ['b', 'c', 'd', 'f', 'g', 'p', 't'].includes(charAfterNext)) &&
+               !isDigraph) {
+        syllables.push(currentSyllable);
+        currentSyllable = '';
+      }
+      // Rule 3: Handle diphthongs as a single unit
+      else if (isDiphthong) {
+        // Include the diphthong in the current syllable and skip the next character
+        currentSyllable += word[i + 1];
+        i++;
+
+        // If after a diphthong there's a consonant followed by a vowel, end the syllable
+        if (i < word.length - 2 && !vowels.includes(lowerWord[i + 1]) && vowels.includes(lowerWord[i + 2])) {
+          syllables.push(currentSyllable);
+          currentSyllable = '';
+        }
+      }
+      // Rule 4: Handle consonant digraphs (keep them together)
+      else if (isDigraph) {
+        // Include the digraph in the current syllable and skip the next character
+        currentSyllable += word[i + 1];
+        i++;
+
+        // If after a digraph there's a vowel, end the syllable
+        if (i < word.length - 1 && vowels.includes(lowerWord[i + 1])) {
+          // But only if we already have a vowel in the current syllable
+          if (currentSyllable.split('').some(c => vowels.includes(c.toLowerCase()))) {
+            syllables.push(currentSyllable);
+            currentSyllable = '';
+          }
+        }
+      }
+      // Rule 5: Vowel followed by another vowel that's not part of a diphthong
+      else if (vowels.includes(char) && vowels.includes(nextChar) && !isDiphthong) {
+        // Split between the vowels unless they form a diphthong
+        syllables.push(currentSyllable);
+        currentSyllable = '';
       }
     }
+
+    i++;
   }
 
-  // Add any remaining characters
+  // Add any remaining characters as the final syllable
   if (currentSyllable) {
     syllables.push(currentSyllable);
   }
 
-  // For educational purposes, if we ended up with just one syllable, 
-  // create a more explicit break for learning
+  // For educational purposes, if we ended up with just one syllable for a longer word,
+  // apply additional rules to create a more explicit break
   if (syllables.length === 1 && word.length > 3) {
+    // Look for a vowel followed by a consonant in the middle of the word
+    for (let j = 1; j < word.length - 1; j++) {
+      if (vowels.includes(lowerWord[j]) && !vowels.includes(lowerWord[j + 1])) {
+        return [word.substring(0, j + 1), word.substring(j + 1)];
+      }
+    }
+
+    // If no better pattern found, split at midpoint as a fallback
     const midpoint = Math.ceil(word.length / 2);
     return [word.substring(0, midpoint), word.substring(midpoint)];
   }
